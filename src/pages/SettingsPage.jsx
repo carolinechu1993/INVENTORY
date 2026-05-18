@@ -26,6 +26,7 @@ import {
   getNotificationPermission,
   isNotificationSupported
 } from '../utils/notify.js'
+import HouseholdSection from '../components/HouseholdSection.jsx'
 
 export default function SettingsPage() {
   const fileInputRef = useRef(null)
@@ -93,6 +94,7 @@ export default function SettingsPage() {
 
   return (
     <div className="p-4 space-y-4">
+      <HouseholdSection />
       <ReminderSettings />
 
       <OptionListManager

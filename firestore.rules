@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(householdData) {
+      return isSignedIn() && request.auth.uid in householdData.members;
+    }
+
+    match /households/{householdId} {
+      // 任何登入使用者都能讀（為了用代碼查家庭），但只有成員可改家庭文件本身
+      allow read: if isSignedIn();
+
+      // 建立：必須由本人創建，且 members 陣列只能放自己 uid
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.members.size() == 1
+        && request.auth.uid in request.resource.data.members;
+
+      // 更新：成員可以更新；加入家庭時也允許把自己加入 members
+      allow update: if isMember(resource.data)
+        || (isSignedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+            && request.auth.uid in request.resource.data.members);
+
+      // 刪除：只允許創建者
+      allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+
+      // 子集合（items / wishlist / meta）只有成員能讀寫
+      match /{collection}/{docId} {
+        allow read, write: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+      }
+    }
+  }
+}

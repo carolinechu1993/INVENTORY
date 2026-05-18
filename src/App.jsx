@@ -7,8 +7,11 @@ import SettingsPage from './pages/SettingsPage.jsx'
 import WishlistPage from './pages/WishlistPage.jsx'
 import BackupBanner from './components/BackupBanner.jsx'
 import { maybeShowReminderNotification } from './utils/notify.js'
+import { useSync } from './contexts/SyncContext.jsx'
 
 export default function App() {
+  const { cloudMode, syncStatus, online, household } = useSync()
+
   useEffect(() => {
     maybeShowReminderNotification()
   }, [])
@@ -21,6 +24,7 @@ export default function App() {
             <span className="text-xl">📦</span>
             <span>生活庫存</span>
           </div>
+          <SyncIndicator cloudMode={cloudMode} syncStatus={syncStatus} online={online} household={household} />
         </div>
         <BackupBanner />
       </header>
@@ -48,6 +52,22 @@ export default function App() {
       </nav>
     </div>
   )
+}
+
+function SyncIndicator({ cloudMode, syncStatus, online, household }) {
+  if (!cloudMode) {
+    return <span className="text-xs text-slate-400">單機</span>
+  }
+  if (!online) {
+    return <span className="text-xs text-amber-600" title="離線中，重連後會自動同步">📴 離線</span>
+  }
+  if (syncStatus === 'syncing') {
+    return <span className="text-xs text-sky-600" title="同步中">☁️ 同步中</span>
+  }
+  if (syncStatus === 'error') {
+    return <span className="text-xs text-rose-600" title="同步失敗">⚠️ 同步失敗</span>
+  }
+  return <span className="text-xs text-emerald-600" title={`已連到家庭：${household?.name || ''}`}>☁️ 已同步</span>
 }
 
 function BottomTab({ to, label, icon }) {
