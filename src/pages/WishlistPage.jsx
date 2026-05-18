@@ -9,6 +9,7 @@ import {
   getUnits,
   updateWishlistItem
 } from '../db/inventoryDB.js'
+import ChipInput from '../components/ChipInput.jsx'
 
 const PRIORITY_OPTIONS = [
   { key: 'high', label: '急', color: 'bg-rose-100 text-rose-700' },
@@ -282,27 +283,21 @@ function AddWishForm({ categories, units, onAdded }) {
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
         />
-        <input
-          list="wish-units"
-          className="input col-span-2"
-          placeholder="單位"
-          value={unit}
-          onChange={(e) => setUnit(e.target.value)}
-        />
-        <datalist id="wish-units">
-          {units.map((u) => <option key={u} value={u} />)}
-        </datalist>
+        <div className="col-span-2">
+          <ChipInput
+            value={unit}
+            onChange={setUnit}
+            options={units}
+            placeholder="單位"
+          />
+        </div>
       </div>
-      <input
-        list="wish-cats"
-        className="input"
-        placeholder="分類（選填）"
+      <ChipInput
         value={category}
-        onChange={(e) => setCategory(e.target.value)}
+        onChange={setCategory}
+        options={categories}
+        placeholder="分類（選填）"
       />
-      <datalist id="wish-cats">
-        {categories.map((c) => <option key={c} value={c} />)}
-      </datalist>
       <div className="flex gap-1">
         {PRIORITY_OPTIONS.map((p) => (
           <button

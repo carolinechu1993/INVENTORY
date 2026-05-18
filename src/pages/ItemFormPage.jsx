@@ -11,6 +11,7 @@ import {
   deleteWishlistItem
 } from '../db/inventoryDB.js'
 import ImagePicker from '../components/ImagePicker.jsx'
+import ChipInput from '../components/ChipInput.jsx'
 import { formatDate } from '../utils/format.js'
 
 const EMPTY = {
@@ -136,7 +137,7 @@ export default function ItemFormPage() {
       <div className="card p-3 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <Field label="分類">
-            <ComboInput
+            <ChipInput
               value={form.category}
               onChange={(v) => update('category', v)}
               options={categories}
@@ -144,7 +145,7 @@ export default function ItemFormPage() {
             />
           </Field>
           <Field label="存放位置">
-            <ComboInput
+            <ChipInput
               value={form.location}
               onChange={(v) => update('location', v)}
               options={locations}
@@ -165,7 +166,7 @@ export default function ItemFormPage() {
             />
           </Field>
           <Field label="單位" className="col-span-2">
-            <ComboInput
+            <ChipInput
               value={form.unit}
               onChange={(v) => update('unit', v)}
               options={units}
@@ -231,21 +232,3 @@ function Field({ label, children, className = '' }) {
   )
 }
 
-function ComboInput({ value, onChange, options, placeholder }) {
-  return (
-    <div className="space-y-1">
-      <input
-        list={`list-${placeholder}`}
-        className="input"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
-      <datalist id={`list-${placeholder}`}>
-        {options.map((o) => (
-          <option key={o} value={o} />
-        ))}
-      </datalist>
-    </div>
-  )
-}
