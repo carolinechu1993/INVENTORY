@@ -176,12 +176,26 @@ export default function ItemFormPage() {
         </div>
 
         <Field label="到期日">
-          <input
-            type="date"
-            className="input"
-            value={form.expiryDate}
-            onChange={(e) => update('expiryDate', e.target.value)}
-          />
+          <div className="flex gap-2">
+            <input
+              type="date"
+              className="input flex-1"
+              value={form.expiryDate}
+              onChange={(e) => update('expiryDate', e.target.value)}
+            />
+            {form.expiryDate && (
+              <button
+                type="button"
+                onClick={() => update('expiryDate', '')}
+                className="btn-secondary px-3 text-sm"
+              >
+                清除
+              </button>
+            )}
+          </div>
+          {!form.expiryDate && (
+            <p className="text-xs text-slate-400 mt-1">沒有設定到期日（適用於沒有保存期限的物品）</p>
+          )}
         </Field>
 
         <Field label="備註">
