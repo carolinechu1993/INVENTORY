@@ -220,7 +220,8 @@ export async function addWishlistItem(item) {
     unit: item.unit || '',
     priority: item.priority || 'normal',
     notes: item.notes || '',
-    addedAt: now
+    addedAt: now,
+    updatedAt: now
   }
   const id = await db.wishlist.add(payload)
   await ensureCategory(item.category)
@@ -233,7 +234,8 @@ export async function addWishlistItem(item) {
 }
 
 export async function updateWishlistItem(id, patch) {
-  await db.wishlist.update(id, patch)
+  const merged = { ...patch, updatedAt: Date.now() }
+  await db.wishlist.update(id, merged)
   await bumpChangeCounter()
   if (isCloudMode() && !isRemoteOrigin('wishlist', id)) {
     const fresh = await db.wishlist.get(id)

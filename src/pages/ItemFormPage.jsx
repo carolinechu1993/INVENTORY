@@ -100,6 +100,9 @@ export default function ItemFormPage() {
           navigate('/')
         }
       }
+    } catch (err) {
+      console.error('save failed', err)
+      alert('儲存失敗：' + (err?.message || err) + '\n\n資料可能已部分寫入本地，請重新整理頁面查看。')
     } finally {
       setSaving(false)
     }

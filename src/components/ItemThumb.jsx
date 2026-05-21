@@ -12,7 +12,10 @@ export default function ItemThumb({ blob, alt = '', className = '' }) {
     const objectUrl = blobToObjectURL(blob)
     setUrl(objectUrl)
     return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
+      if (objectUrl) {
+        // 延後 revoke，避免 img 還在用舊 URL 時被回收造成 X
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+      }
     }
   }, [blob])
 

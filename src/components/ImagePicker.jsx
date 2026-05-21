@@ -15,7 +15,9 @@ export default function ImagePicker({ value, onChange }) {
     const url = blobToObjectURL(value)
     setPreviewUrl(url)
     return () => {
-      if (url) URL.revokeObjectURL(url)
+      if (url) {
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
     }
   }, [value])
 

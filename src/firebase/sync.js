@@ -97,7 +97,7 @@ export async function pushWishlistItem(id, item) {
     priority: item.priority || 'normal',
     notes: item.notes || '',
     addedAt: item.addedAt || Date.now(),
-    updatedAt: Date.now(),
+    updatedAt: item.updatedAt || Date.now(),
     updatedBy: getCurrentUser()?.uid || null
   }
   await setDoc(doc(wishlistCol(), String(id)), payload, { merge: true })
@@ -164,55 +164,84 @@ export async function replaceLocalWithCloud() {
   await db.meta.clear()
 }
 
+async function applyItemChange(change) {
+  const idStr = change.doc.id
+  const numericId = Number(idStr)
+  const id = Number.isNaN(numericId) ? idStr : numericId
+
+  if (change.type === 'removed') {
+    markRemoteOrigin('items', id)
+    await db.items.delete(id).catch(console.warn)
+    return
+  }
+
+  const data = deserializeItemFromCloud(change.doc.data())
+  const existing = await db.items.get(id)
+  // 略過自己 push 的回音 / 本地更新更新的版本
+  if (existing && (existing.updatedAt ?? 0) >= (data.updatedAt ?? 0)) {
+    return
+  }
+  markRemoteOrigin('items', id)
+  await db.items.put({ ...data, id }).catch(console.warn)
+}
+
+async function applyWishlistChange(change) {
+  const idStr = change.doc.id
+  const numericId = Number(idStr)
+  const id = Number.isNaN(numericId) ? idStr : numericId
+
+  if (change.type === 'removed') {
+    markRemoteOrigin('wishlist', id)
+    await db.wishlist.delete(id).catch(console.warn)
+    return
+  }
+
+  const data = change.doc.data()
+  const existing = await db.wishlist.get(id)
+  if (existing && (existing.updatedAt ?? 0) >= (data.updatedAt ?? 0)) {
+    return
+  }
+  markRemoteOrigin('wishlist', id)
+  await db.wishlist.put({ ...data, id }).catch(console.warn)
+}
+
+async function applyMetaChange(change) {
+  const key = change.doc.id
+  if (change.type === 'removed') {
+    markRemoteOrigin('meta', key)
+    await db.meta.delete(key).catch(console.warn)
+    return
+  }
+  const data = change.doc.data()
+  const existing = await db.meta.get(key)
+  if (existing && JSON.stringify(existing.value) === JSON.stringify(data.value)) {
+    return
+  }
+  markRemoteOrigin('meta', key)
+  await db.meta.put({ key, value: data.value }).catch(console.warn)
+}
+
 export function startCloudListeners() {
   stopCloudListeners()
   if (!isCloudMode()) return
 
-  unsubItems = onSnapshot(itemsCol(), (snap) => {
-    snap.docChanges().forEach((change) => {
-      const idStr = change.doc.id
-      const numericId = Number(idStr)
-      const id = Number.isNaN(numericId) ? idStr : numericId
-      if (change.type === 'removed') {
-        markRemoteOrigin('items', id)
-        db.items.delete(id).catch(console.warn)
-      } else {
-        const data = deserializeItemFromCloud(change.doc.data())
-        markRemoteOrigin('items', id)
-        db.items.put({ ...data, id }).catch(console.warn)
-      }
-    })
-  })
+  unsubItems = onSnapshot(
+    itemsCol(),
+    (snap) => snap.docChanges().forEach((c) => applyItemChange(c).catch(console.warn)),
+    (err) => console.error('items listener error', err)
+  )
 
-  unsubWishlist = onSnapshot(wishlistCol(), (snap) => {
-    snap.docChanges().forEach((change) => {
-      const idStr = change.doc.id
-      const numericId = Number(idStr)
-      const id = Number.isNaN(numericId) ? idStr : numericId
-      if (change.type === 'removed') {
-        markRemoteOrigin('wishlist', id)
-        db.wishlist.delete(id).catch(console.warn)
-      } else {
-        const data = change.doc.data()
-        markRemoteOrigin('wishlist', id)
-        db.wishlist.put({ ...data, id }).catch(console.warn)
-      }
-    })
-  })
+  unsubWishlist = onSnapshot(
+    wishlistCol(),
+    (snap) => snap.docChanges().forEach((c) => applyWishlistChange(c).catch(console.warn)),
+    (err) => console.error('wishlist listener error', err)
+  )
 
-  unsubMeta = onSnapshot(metaCol(), (snap) => {
-    snap.docChanges().forEach((change) => {
-      const key = change.doc.id
-      if (change.type === 'removed') {
-        markRemoteOrigin('meta', key)
-        db.meta.delete(key).catch(console.warn)
-      } else {
-        const data = change.doc.data()
-        markRemoteOrigin('meta', key)
-        db.meta.put({ key, value: data.value }).catch(console.warn)
-      }
-    })
-  })
+  unsubMeta = onSnapshot(
+    metaCol(),
+    (snap) => snap.docChanges().forEach((c) => applyMetaChange(c).catch(console.warn)),
+    (err) => console.error('meta listener error', err)
+  )
 }
 
 export function stopCloudListeners() {
