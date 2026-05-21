@@ -239,10 +239,10 @@ function sanitizePreset(preset) {
 
 function Field({ label, children, className = '' }) {
   return (
-    <label className={`block space-y-1 ${className}`}>
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+    <div className={`space-y-1 ${className}`}>
+      <div className="text-sm font-medium text-slate-700">{label}</div>
       {children}
-    </label>
+    </div>
   )
 }
 
