@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
+  addItem,
   addWishlistItem,
   deleteItem,
   getExpiryWarnDays,
@@ -10,6 +11,7 @@ import {
 } from '../db/inventoryDB.js'
 import ItemThumb from '../components/ItemThumb.jsx'
 import { expiryLabel, formatDate } from '../utils/format.js'
+import { useToast } from '../contexts/ToastContext.jsx'
 
 export default function ItemDetailPage() {
   const { id } = useParams()
@@ -17,6 +19,7 @@ export default function ItemDetailPage() {
   const [item, setItem] = useState(null)
   const [loading, setLoading] = useState(true)
   const warnDays = useLiveQuery(() => getExpiryWarnDays(), [], 7)
+  const { showToast } = useToast()
 
   useEffect(() => {
     (async () => {
@@ -45,8 +48,27 @@ export default function ItemDetailPage() {
   }
 
   async function handleDelete() {
-    if (!confirm(`確定要刪除「${item.name}」？此動作無法復原`)) return
+    if (!confirm(`確定要刪除「${item.name}」？`)) return
+    const snapshot = item
     await deleteItem(item.id)
+    showToast({
+      message: `已刪除「${snapshot.name}」`,
+      action: {
+        label: '復原',
+        handler: async () => {
+          await addItem({
+            name: snapshot.name,
+            category: snapshot.category,
+            quantity: snapshot.quantity,
+            unit: snapshot.unit,
+            location: snapshot.location,
+            expiryDate: snapshot.expiryDate,
+            notes: snapshot.notes,
+            imageBlob: snapshot.imageBlob
+          })
+        }
+      }
+    })
     navigate('/')
   }
 

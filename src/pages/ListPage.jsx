@@ -2,16 +2,19 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
+  addItem,
   db,
   deleteItem,
   getCategories,
   getLocations,
   getExpiryWarnDays,
   getReminderSettings,
+  getItem,
   updateItem
 } from '../db/inventoryDB.js'
 import ItemThumb from '../components/ItemThumb.jsx'
 import { daysUntil, expiryLabel } from '../utils/format.js'
+import { useToast } from '../contexts/ToastContext.jsx'
 
 const SORTS = [
   { key: 'updated', label: '最新更新' },
@@ -154,6 +157,7 @@ function ItemRow({ item, warnDays }) {
   const exp = expiryLabel(item.expiryDate, warnDays)
   const isEmpty = (item.quantity ?? 0) === 0
   const [busy, setBusy] = useState(false)
+  const { showToast } = useToast()
 
   async function adjustQty(delta) {
     const next = Math.max(0, (item.quantity || 0) + delta)
@@ -167,8 +171,28 @@ function ItemRow({ item, warnDays }) {
   }
 
   async function handleDelete() {
-    if (!confirm(`刪除「${item.name}」？此動作無法復原`)) return
+    if (!confirm(`刪除「${item.name}」？`)) return
+    const snapshot = await getItem(item.id)
     await deleteItem(item.id)
+    showToast({
+      message: `已刪除「${item.name}」`,
+      action: {
+        label: '復原',
+        handler: async () => {
+          if (!snapshot) return
+          await addItem({
+            name: snapshot.name,
+            category: snapshot.category,
+            quantity: snapshot.quantity,
+            unit: snapshot.unit,
+            location: snapshot.location,
+            expiryDate: snapshot.expiryDate,
+            notes: snapshot.notes,
+            imageBlob: snapshot.imageBlob
+          })
+        }
+      }
+    })
   }
 
   return (

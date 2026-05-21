@@ -10,6 +10,7 @@ import {
   updateWishlistItem
 } from '../db/inventoryDB.js'
 import ChipInput from '../components/ChipInput.jsx'
+import { useToast } from '../contexts/ToastContext.jsx'
 
 const PRIORITY_OPTIONS = [
   { key: 'high', label: '急', color: 'bg-rose-100 text-rose-700' },
@@ -151,6 +152,7 @@ function WishRow({ item }) {
   const navigate = useNavigate()
   const priority = PRIORITY_OPTIONS.find((p) => p.key === item.priority) || PRIORITY_OPTIONS[1]
   const [busy, setBusy] = useState(false)
+  const { showToast } = useToast()
 
   function handleConfirmBought() {
     if (!confirm(`已經買到「${item.name}」了嗎？\n\n確認後會跳到新增表單，補位置與到期日後存檔，即加入庫存並從待購消失。`)) return
@@ -181,7 +183,24 @@ function WishRow({ item }) {
 
   async function handleDelete() {
     if (!confirm(`刪除「${item.name}」？\n（從待購清單移除，不會加入庫存）`)) return
+    const snapshot = { ...item }
     await deleteWishlistItem(item.id)
+    showToast({
+      message: `已從待購刪除「${snapshot.name}」`,
+      action: {
+        label: '復原',
+        handler: async () => {
+          await addWishlistItem({
+            name: snapshot.name,
+            category: snapshot.category,
+            quantity: snapshot.quantity,
+            unit: snapshot.unit,
+            priority: snapshot.priority,
+            notes: snapshot.notes
+          })
+        }
+      }
+    })
   }
 
   return (
