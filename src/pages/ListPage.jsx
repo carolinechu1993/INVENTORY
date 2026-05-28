@@ -22,11 +22,23 @@ const SORTS = [
   { key: 'name', label: '名稱' }
 ]
 
+const VIEW_MODE_KEY = 'listViewShowImages'
+
 export default function ListPage() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
   const [location, setLocation] = useState('')
   const [sortKey, setSortKey] = useState('updated')
+  const [showImages, setShowImages] = useState(() => {
+    const saved = localStorage.getItem(VIEW_MODE_KEY)
+    return saved === null ? true : saved === 'true'
+  })
+
+  function toggleShowImages() {
+    const next = !showImages
+    setShowImages(next)
+    localStorage.setItem(VIEW_MODE_KEY, String(next))
+  }
 
   const items = useLiveQuery(() => db.items.toArray(), [], [])
   const categories = useLiveQuery(() => getCategories(), [], [])
@@ -107,20 +119,29 @@ export default function ListPage() {
             ))}
           </select>
         </div>
-        <div className="flex items-center justify-end gap-1 text-sm">
-          {SORTS.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setSortKey(s.key)}
-              className={`px-2 py-1 rounded text-xs ${
-                sortKey === s.key
-                  ? 'bg-sky-100 text-sky-700 font-semibold'
-                  : 'text-slate-500'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-1 text-sm">
+          <button
+            onClick={toggleShowImages}
+            className="px-2 py-1 rounded text-xs text-slate-600 bg-slate-100 active:bg-slate-200"
+            title={showImages ? '切換為緊湊模式（隱藏圖片）' : '切換為顯示圖片'}
+          >
+            {showImages ? '🖼 圖文' : '📃 緊湊'}
+          </button>
+          <div className="flex gap-1">
+            {SORTS.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setSortKey(s.key)}
+                className={`px-2 py-1 rounded text-xs ${
+                  sortKey === s.key
+                    ? 'bg-sky-100 text-sky-700 font-semibold'
+                    : 'text-slate-500'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -145,7 +166,7 @@ export default function ListPage() {
       ) : (
         <ul className="space-y-2">
           {filtered.map((item) => (
-            <ItemRow key={item.id} item={item} warnDays={warnDays} />
+            <ItemRow key={item.id} item={item} warnDays={warnDays} showImage={showImages} />
           ))}
         </ul>
       )}
@@ -153,7 +174,7 @@ export default function ListPage() {
   )
 }
 
-function ItemRow({ item, warnDays }) {
+function ItemRow({ item, warnDays, showImage = true }) {
   const exp = expiryLabel(item.expiryDate, warnDays)
   const isEmpty = (item.quantity ?? 0) === 0
   const [busy, setBusy] = useState(false)
@@ -199,11 +220,13 @@ function ItemRow({ item, warnDays }) {
     <li className={`card overflow-hidden ${isEmpty ? 'opacity-70' : ''}`}>
       <Link to={`/item/${item.id}`} className="block p-3 active:bg-slate-50">
         <div className="flex gap-3">
-          <ItemThumb
-            blob={item.imageBlob}
-            alt={item.name}
-            className="w-16 h-16 rounded-lg shrink-0"
-          />
+          {showImage && (
+            <ItemThumb
+              blob={item.imageBlob}
+              alt={item.name}
+              className="w-16 h-16 rounded-lg shrink-0"
+            />
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-semibold truncate">{item.name}</h3>
